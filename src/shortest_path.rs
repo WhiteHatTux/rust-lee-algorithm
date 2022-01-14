@@ -22,7 +22,11 @@ mod solution {
 
 
     pub fn find_path(maze: Vec<Vec<u32>>, start: (u32, u32), dest: (u32, u32)) -> (u32, Vec<(u32, u32)>) {
-        check_for_plausibility(&maze, start, dest);
+        let plausi_check_failed = check_for_plausibility(&maze, start, dest);
+        if plausi_check_failed.is_some() {
+            println!("{}", plausi_check_failed.unwrap());
+            return (0, vec![]);
+        }
         if maze.len() == 0 {
             return (0, vec![]);
         }
@@ -58,11 +62,9 @@ mod solution {
             }
             temp_nodes.into_iter().for_each(|temp_node| nodes.push(temp_node));
             path_length += 1;
-            println!("nodes count {}", nodes.len());
+            println!("current path_length {} and nodes count {} ", path_length, nodes.len());
             //nodes.iter().for_each(|node| print!("pos:{:?},par:{:?}|", node.position, node.parent.as_ref().map(|par| par.position).unwrap_or()));
             println!();
-
-            println!("last nodes position {:?}", nodes.last().unwrap().position);
             if nodes.len() > (maze.len() * maze.get(0).unwrap().len()) {
                 panic!("Algorithm is adding to many nodes");
             }
@@ -78,19 +80,20 @@ mod solution {
         }
     }
 
-    fn check_for_plausibility(maze: &Vec<Vec<u32>>, start: (u32, u32), dest: (u32, u32)) {
+    fn check_for_plausibility(maze: &Vec<Vec<u32>>, start: (u32, u32), dest: (u32, u32)) -> Option<String> {
         if start.0 as usize > maze.get(0).unwrap().len() {
-            panic!("start x is outside the maze");
+            return Option::Some("start x is outside the maze".to_string());
         }
         if start.1 as usize > maze.len() {
-            panic!("start y is outside the maze");
+            return Option::Some("start y is outside the maze".to_string());
         }
         if dest.0 as usize > maze.get(0).unwrap().len() {
-            panic!("dest x is outside the maze");
+            return Option::Some("dest x is outside the maze".to_string());
         }
         if dest.1 as usize > maze.len() {
-            panic!("dest y is outside the maze");
+            return Option::Some("dest y is outside the maze".to_string());
         }
+        Option::None
     }
 
 
@@ -155,6 +158,8 @@ mod solution {
 
 #[cfg(test)]
 mod tests {
+    use rand::Rng;
+
     use super::*;
 
     #[test]
@@ -179,6 +184,30 @@ mod tests {
             vec![0, 0, 1, 0, 0, 0, 1, 0, 0],
             vec![0, 0, 1, 0, 1, 0, 0, 0, 0]];
         assert_eq!(solution::find_path(vec, (2, 2), (7, 4)), (0, vec![]));
+    }
+
+    #[test]
+    fn simple_maze_no_start_outside_maze() {
+        let vec = vec![
+            vec![0, 0, 1, 0, 0, 1, 1, 0, 0],
+            vec![0, 0, 1, 0, 0, 1, 1, 0, 0],
+            vec![0, 0, 0, 1, 0, 1, 1, 0, 0],
+            vec![0, 0, 1, 0, 1, 1, 1, 1, 0],
+            vec![0, 0, 1, 0, 0, 0, 1, 0, 0],
+            vec![0, 0, 1, 0, 1, 0, 0, 0, 0]];
+        assert_eq!(solution::find_path(vec, (10, 2), (7, 4)), (0, vec![]));
+    }
+
+    #[test]
+    fn simple_maze_start_is_not_walkable() {
+        let vec = vec![
+            vec![0, 0, 1, 0, 0, 1, 1, 0, 0],
+            vec![0, 0, 1, 0, 0, 1, 1, 0, 0],
+            vec![0, 0, 0, 1, 0, 1, 1, 0, 0],
+            vec![0, 0, 1, 0, 1, 1, 1, 1, 0],
+            vec![0, 0, 1, 0, 0, 0, 1, 0, 0],
+            vec![0, 0, 1, 0, 1, 0, 0, 0, 0]];
+        assert_eq!(solution::find_path(vec, (2, 0), (7, 4)), (0, vec![]));
     }
 
     #[test]
@@ -220,12 +249,29 @@ mod tests {
             vec![0, 0, 1, 0, 1, 1, 1, 1, 0],
             vec![0, 0, 1, 0, 0, 0, 1, 0, 0],
             vec![0, 0, 1, 0, 1, 0, 0, 0, 0]];
+        // This test does not actually test the output. It only tests that the execution finishes in reasonable time
         solution::find_path(big_vec, (2, 2), (7, 34));
     }
-    /*
-        #[test]
-        fn huge_random_maze() {
-            let max_x =
-        }*/
+
+    #[test]
+    fn huge_random_maze() {
+        let x = 50;
+        rand::thread_rng().gen_range(10..501) as u32;
+        let y = 50;
+        rand::thread_rng().gen_range(10..501) as u32;
+        println!("x = {}, y = {}", &x, &y);
+
+        let mut maze = vec![];
+        for _ in 1..y {
+            let mut line = vec![];
+            for _ in 1..x {
+                let i = rand::thread_rng().gen_range(0..30) as u32;
+                // this way we get about 1/3 "1" and about 2/3 "0"
+                line.push(if i > 20 { 1 } else { 0 });
+            }
+            maze.push(line);
+        };
+        solution::find_path(maze, (9, 9), (x - 5, y - 9));
+    }
 }
 
